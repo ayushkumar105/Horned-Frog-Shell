@@ -5,7 +5,7 @@
 ###########################################################
 .SUFFIXES: .h .c .cpp .l .o
 
-CC = gcc
+CC = g++
 CXX = g++
 CFLAGS = -g 
 LEX = flex
