@@ -72,13 +72,43 @@ vector<string> built_in = {"cd", "path", "exit"};
 int shell(const Command& comm);
 bool checkBuiltIn(const Command& command);
 string parseInput(const string& input);
-void executeCommand(const string& command);
+void executeCommand(const Command& command);
+int executeCommands(const vector<Command>& commands);
+
 
 //*********************************************************
 //
 // Function Definitions
 //
 //*********************************************************
+int executeCommands(const vector<Command>& commands)
+{
+    for(int i =0; i< commands.size(); ++i)
+    {
+        if(!(checkBuiltIn(commands[i])))
+        {
+            
+            pid_t pid = Fork();
+            if(pid != 0)
+            {
+                Waitpid(pid, NULL, 0);
+                //printf("%d has exited \n", pid);
+            }
+            else
+            {
+                shell(commands[i]);
+                exit(0);
+            }
+        }
+        else
+        {
+            executeCommand(commands[i]);
+        }
+    }
+    return 0;
+}
+
+
 void executeCommand(const Command& command)
 {
     if (command.comm == "exit")
@@ -120,69 +150,43 @@ bool checkBuiltIn(const Command& command)
 
 int shell(const Command& comm)
 {
+    string path = currPaths.front() + "/" + comm.comm;
+    int i = 1;
     
-    if(!(checkBuiltIn(comm)))
+    while (i < currPaths.size() && access("/bin/ls", X_OK) == -1)
     {
-        string path = currPaths.front() + "/" + comm.comm;
-        int i = 1;
-        while (i < currPaths.size() && access("/bin/ls", X_OK) == -1)
-        {
-            ++i;
-            path = currPaths[i] + "/" + comm.comm;
-        }
-        string commPath = (path).c_str();
+        ++i;
+        path = currPaths[i] + "/" + comm.comm;
+    }
+    string commPath = path;
+    
+    
+    char *args[256];
+    
+    if (!comm.args.empty())
+    {
         char *arg1 = const_cast<char*>(comm.args[0].c_str());
         char *arg2 = const_cast<char*>(comm.args[1].c_str());
-        char *args[] = {const_cast<char*>(commPath.c_str()), NULL};
-        // if (!comm.args.empty())
-        // {
-        //     cout << "hii";
-        //     args[0] = const_cast<char*>(commPath.c_str());
-        //     args[1] = arg1;
-        //     args[2] = arg2;
-        //     args[3] = NULL;
-        // }
-        // else
-        // {
-        //     args[0] = const_cast<char*>(commPath.c_str());
-        //     args[1] = NULL;
-        // }
-        //char *args[] = {const_cast<char*>(commPath.c_str()), arg1, arg2, NULL};
-        int pid, status;
-        // first we fork the process
-        if (pid = Fork()) {
-
-            // pid != 0: this is the parent process (i.e. our process)
-            Waitpid(pid, &status, 0); // wait for the child to exit
-
-        } 
-        else 
-        {
-            /* pid == 0: this is the child process. now let's load the
-                "ls" program into this process and run it */
-
-            // load it. there are more exec__ functions, try 'man 3 exec'
-            // execl takes the arguments as parameters. execv takes them as an array
-            // this is execl though, so:
-            //      exec         argv[0]  argv[1] end
-            if(false)
-            {
-                int file = Open("output.txt", O_WRONLY | O_APPEND | O_CREAT, 0644);
-                Dup2(file, 1);
-            }
-            if ((execv(commPath.c_str(), args)) < 0)
-            {
-                cout << "Error";
-            }
-            /* exec does not return unless the program couldn't be started. 
-                when the child process stops, the waitpid() above will return.
-            */
-        }
-        return status; // this is the parent process again.
+        args[0] = const_cast<char*>(commPath.c_str());
+        args[1] = arg1;
+        args[2] = arg2;
+        args[3] = NULL;
     }
     else
     {
-        executeCommand(comm);
+        args[0] = const_cast<char*>(commPath.c_str());
+        args[1] = NULL;
+    }
+    
+    if(false)
+    {
+        int file = Open("output.txt", O_WRONLY | O_APPEND | O_CREAT, 0644);
+        Dup2(file, 1);
+    }
+    
+    if ((execv(commPath.c_str(), args)) < 0)
+    {
+        cout << "Error";
     }
     return 0;
 }
@@ -200,6 +204,7 @@ int main(int argc, char *argv[])
     int retval;
     char linestr[256];
     YY_BUFFER_STATE buffer;
+    vector<Command> commands;
     Command comm = {};
 
     /* initialize local variables */
@@ -210,10 +215,10 @@ int main(int argc, char *argv[])
 
     
     /* main loop */
-    cout << "hfsh> ";
+    cout << "hfsh2> ";
     
     while(Fgets(linestr, 256, stdin)){
-        cout << "hfsh> ";
+        currPaths.push_back("/bin");
         // make sure line has a '\n' at the end of it
         if(!strstr(linestr, "\n"))
             strcat(linestr, "\n");
@@ -223,19 +228,44 @@ int main(int argc, char *argv[])
         yy_switch_to_buffer(buffer);
         toks = gettoks();
         yy_delete_buffer(buffer);
-        
+        if(strcmp(toks[0], "exit") != 0)
+        {
+            cout << "hfsh2> ";
+        }
         if(toks[0] != NULL){
-            currPaths.push_back("/bin");
+            
             string str = toks[0];
             comm.comm = str;
             /* simple loop to echo all arguments */
-            
-            for(ii=1; toks[ii] != NULL; ii++){
+            int ii = 1;
+            while(toks[ii] != NULL){
                 //printf( "Argument %d: %s\n", ii, toks[ii] );
-                comm.args.push_back(toks[ii]);
+                if (strcmp(toks[ii], "&") == 0)
+                {
+                    commands.push_back(comm);
+                    comm = {};
+                    comm.comm = toks[ii + 1];
+                    ii += 2;
+                }
+                else
+                {
+                    comm.args.push_back(toks[ii]);
+                    ++ii;
+                }
+                
             }
-
-            shell(comm);
+            commands.push_back(comm);
+            // for(auto j : commands)
+            // {
+            //     cout << "Command: " << j.comm << " ";
+            //     for(auto k : j.args)
+            //     {
+            //         cout << "args: " << k << " ";
+            //     }
+            //     cout << "\n";
+            // }
+            executeCommands(commands);
+            commands.clear();
             comm = {};
             if(!strcmp(toks[0], STR_EXIT))
             break;
