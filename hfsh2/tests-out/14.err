@@ -1,0 +1,2 @@
+An error has occurred
+../tester/run-tests.sh: line 23: 45121 Segmentation fault      (core dumped) ./hfsh2 tests/p2a-tests/bad

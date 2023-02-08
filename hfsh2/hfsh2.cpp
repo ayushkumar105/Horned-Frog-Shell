@@ -113,19 +113,26 @@ void executeCommand(const Command& command)
 {
     if (command.comm == "exit")
     {
+        if(!command.args.empty())
+        {
+            char error_message[30] = "An error has occurred\n";
+            write(STDERR_FILENO, error_message, strlen(error_message)); 
+        }
         exit(0);
     }
     else if (command.comm == "cd")
     {
-        if (command.args.size() > 1)
+        if (command.args.size() > 1 || command.args.size() == 0)
         {
-            cout << "Error \n";
+            char error_message[30] = "An error has occurred\n";
+            write(STDERR_FILENO, error_message, strlen(error_message));
         }
         else
         {
             if(chdir(command.args[0].c_str()) != 0)
             {
-                cout << "Error \n";
+                char error_message[30] = "An error has occurred\n";
+                write(STDERR_FILENO, error_message, strlen(error_message)); 
             }
         }
     }
@@ -150,27 +157,28 @@ bool checkBuiltIn(const Command& command)
 
 int shell(const Command& comm)
 {
-    string path = currPaths.front() + "/" + comm.comm;
-    int i = 1;
+    string path = "/" + currPaths.front() + "/" + comm.comm;
+    int i = 0;
     
-    while (i < currPaths.size() && access("/bin/ls", X_OK) == -1)
+    while (i < currPaths.size() && access(path.c_str(), X_OK) == -1)
     {
         ++i;
-        path = currPaths[i] + "/" + comm.comm;
+        path = "/" + currPaths[i] + "/" + comm.comm;
     }
-    string commPath = path;
+    string commPath = "/bin/sh";
     
     
     char *args[256];
     
     if (!comm.args.empty())
     {
-        char *arg1 = const_cast<char*>(comm.args[0].c_str());
-        char *arg2 = const_cast<char*>(comm.args[1].c_str());
         args[0] = const_cast<char*>(commPath.c_str());
-        args[1] = arg1;
-        args[2] = arg2;
-        args[3] = NULL;
+        for(int i = 0; i<comm.args.size(); ++i)
+        {
+            char *arg1 = const_cast<char*>(comm.args[i].c_str());
+            args[i + 1] = arg1;
+        }
+        args[comm.args.size() + 1] = NULL;
     }
     else
     {
@@ -183,21 +191,36 @@ int shell(const Command& comm)
         int file = Open("output.txt", O_WRONLY | O_APPEND | O_CREAT, 0644);
         Dup2(file, 1);
     }
+    cout << "HIII";
+    string s = "sh";
+    string s1 = "tests/p1.sh";
+    args[0] = const_cast<char*>(s.c_str());
+    args[1] = const_cast<char*>(s1.c_str());
+    args[2] = NULL;
     
-    if ((execv(commPath.c_str(), args)) < 0)
+    if ((execve(commPath.c_str(), args, NULL)) < 0)
     {
-        cout << "Error";
+        
+        char error_message[30] = "An error has occurred\n";
+        write(STDERR_FILENO, error_message, strlen(error_message)); 
     }
     return 0;
 }
 
-//*********************************************************
-//
-// Main Function
-//
-//*********************************************************
-int main(int argc, char *argv[])
+void batchFile(char* filename)
 {
+    FILE* fp;
+    
+    currPaths.push_back("bin");
+    // Opening file in reading mode
+    fp = fopen(filename, "r");
+ 
+    if (NULL == fp) 
+    {
+        char error_message[30] = "An error has occurred\n";
+        write(STDERR_FILENO, error_message, strlen(error_message)); 
+    }
+    
     /* local variables */
     int ii;
     char **toks;
@@ -214,24 +237,22 @@ int main(int argc, char *argv[])
     
 
     
-    /* main loop */
-    cout << "hfsh2> ";
+    // /* main loop */
     
-    while(Fgets(linestr, 256, stdin)){
-        currPaths.push_back("/bin");
+    
+    while(Fgets(linestr, 256, fp))
+    {
+        
+        
         // make sure line has a '\n' at the end of it
         if(!strstr(linestr, "\n"))
             strcat(linestr, "\n");
         
-        /* get arguments */
+         /* get arguments */
         buffer = yy_scan_string(linestr);
         yy_switch_to_buffer(buffer);
         toks = gettoks();
         yy_delete_buffer(buffer);
-        if(strcmp(toks[0], "exit") != 0)
-        {
-            cout << "hfsh2> ";
-        }
         if(toks[0] != NULL){
             
             string str = toks[0];
@@ -268,10 +289,104 @@ int main(int argc, char *argv[])
             commands.clear();
             comm = {};
             if(!strcmp(toks[0], STR_EXIT))
-            break;
+             break;
         }
     }
+    
+}
 
-    /* return to calling environment */
-    return( retval );
+
+//*********************************************************
+//
+// Main Function
+//
+//*********************************************************
+int main(int argc, char *argv[])
+{
+    
+    if(argc > 1)
+    {
+        batchFile(argv[1]);
+    }
+    else
+    {
+        /* local variables */
+        int ii;
+        char **toks;
+        int retval;
+        char linestr[256];
+        YY_BUFFER_STATE buffer;
+        vector<Command> commands;
+        Command comm = {};
+
+        // /* initialize local variables */
+        ii = 0;
+        toks = NULL;
+        retval = 0;
+        
+
+        
+        /* main loop */
+        cout << "hfsh2> ";
+        
+        while(Fgets(linestr, 256, stdin)){
+            currPaths.push_back("bin");
+            // make sure line has a '\n' at the end of it
+            if(!strstr(linestr, "\n"))
+                strcat(linestr, "\n");
+            
+            /* get arguments */
+            buffer = yy_scan_string(linestr);
+            yy_switch_to_buffer(buffer);
+            toks = gettoks();
+            yy_delete_buffer(buffer);
+            if(strcmp(toks[0], "exit") != 0)
+            {
+                cout << "hfsh2> ";
+            }
+            if(toks[0] != NULL){
+                
+                string str = toks[0];
+                comm.comm = str;
+                /* simple loop to echo all arguments */
+                int ii = 1;
+                while(toks[ii] != NULL){
+                    //printf( "Argument %d: %s\n", ii, toks[ii] );
+                    if (strcmp(toks[ii], "&") == 0)
+                    {
+                        commands.push_back(comm);
+                        comm = {};
+                        comm.comm = toks[ii + 1];
+                        ii += 2;
+                    }
+                    else
+                    {
+                        comm.args.push_back(toks[ii]);
+                        ++ii;
+                    }
+                    
+                }
+                commands.push_back(comm);
+                // for(auto j : commands)
+                // {
+                //     cout << "Command: " << j.comm << " ";
+                //     for(auto k : j.args)
+                //     {
+                //         cout << "args: " << k << " ";
+                //     }
+                //     cout << "\n";
+                // }
+                executeCommands(commands);
+                commands.clear();
+                comm = {};
+                if(!strcmp(toks[0], STR_EXIT))
+                break;
+            }
+        }
+
+        /* return to calling environment */
+        return( retval );
+    }
+    
+    
 }
