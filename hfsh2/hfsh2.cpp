@@ -173,7 +173,8 @@ bool checkBuiltIn(const Command& command)
 
 int shell(Command& comm)
 {
-    string file;
+    int filename = -1;
+    int savedStdOut = dup(1);
     if(currPaths.empty())
     {
         char error_message[30] = "An error has occurred\n";
@@ -200,12 +201,14 @@ int shell(Command& comm)
             write(STDERR_FILENO, error_message, strlen(error_message));
             return 0; 
         }
-        file = comm.args.back();
+        
         Fclose(Fopen(comm.args.back().c_str(), "w"));
         int file = Open(comm.args.back().c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+        filename = file;
         comm.args.pop_back();
         comm.args.pop_back();
         Dup2(file, 1);
+        Close(file);
     }
     // if(comm.comm.size() > 3 && (comm.comm.substr(comm.comm.size() - 3) == ".sh"))
     // {
@@ -305,6 +308,11 @@ int shell(Command& comm)
         
         
         Waitpid(pid, NULL, 0);
+        if(filename != -1)
+        {
+            //Close(filename);
+            Dup2(savedStdOut, 1);
+        }
         // if(file != "")
         // {
         //     Fclose(Fopen(file.c_str(), "w"));
@@ -426,6 +434,7 @@ int batchFile(char* filename)
              break;
         }
     }
+    Fclose(fp);
     return 0;
 }
 
