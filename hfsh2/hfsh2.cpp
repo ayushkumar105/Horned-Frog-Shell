@@ -83,14 +83,14 @@ int executeCommands(vector<Command>& commands);
 //*********************************************************
 int executeCommands(vector<Command>& commands)
 {
-    pid_t pid;
+    pid_t pid[commands.size()];
     for(int i =0; i< commands.size(); ++i)
     {
         if(!(checkBuiltIn(commands[i])))
         {
-            pid = Fork();
+            pid[i] = Fork();
             
-            if(pid == 0)
+            if(pid[i] == 0)
             {
                 shell(commands[i]);
                 exit(0);
@@ -105,11 +105,9 @@ int executeCommands(vector<Command>& commands)
             executeCommand(commands[i]);
         }
     }
-    if(pid != 0)
-    {
-        
-        waitpid(pid, NULL, 0);
-        //printf("%d has exited \n", pid);
+    for(int i = 0; i< commands.size(); ++i)
+    { 
+        waitpid(pid[i], NULL, 0);
     }
     
     
@@ -123,7 +121,7 @@ void executeCommand(const Command& command)
     {
         if(!command.args.empty())
         {
-            char error_message[30] = "This is exit error\n";
+            char error_message[30] = "An error has occurred\n";
             write(STDERR_FILENO, error_message, strlen(error_message)); 
         }
         else
@@ -136,14 +134,14 @@ void executeCommand(const Command& command)
     {
         if (command.args.size() > 1 || command.args.size() == 0)
         {
-            char error_message[30] = "This is chdir argument error\n";
+            char error_message[30] = "An error has occurred\n";
             write(STDERR_FILENO, error_message, strlen(error_message));
         }
         else
         {
             if(chdir(command.args[0].c_str()) != 0)
             {
-                char error_message[30] = "This is chdir error\n";
+                char error_message[30] = "An error has occurred\n";
                 write(STDERR_FILENO, error_message, strlen(error_message)); 
             }
         }
@@ -175,13 +173,40 @@ bool checkBuiltIn(const Command& command)
 
 int shell(Command& comm)
 {
+    string file;
     if(currPaths.empty())
     {
-        char error_message[30] = "This is empty path error\n";
+        char error_message[30] = "An error has occurred\n";
         write(STDERR_FILENO, error_message, strlen(error_message));
         return 0; 
     }
-    
+    if(find(comm.args.begin(), comm.args.end(), ">") != comm.args.end())
+    {
+        
+        int countOfOp = 0;
+        int idx = 0;
+        for(int i = 0; i<comm.args.size(); ++i)
+        {
+            if (comm.args[i] == ">")
+            {
+                countOfOp++;
+                idx = i;
+            }
+        }
+        //cout << comm.args[0] << endl;
+        if(countOfOp > 1 || idx != comm.args.size() - 2)
+        {
+            char error_message[30] = "An error has occurred\n";
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            return 0; 
+        }
+        file = comm.args.back();
+        Fclose(Fopen(comm.args.back().c_str(), "w"));
+        int file = Open(comm.args.back().c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+        comm.args.pop_back();
+        comm.args.pop_back();
+        Dup2(file, 1);
+    }
     // if(comm.comm.size() > 3 && (comm.comm.substr(comm.comm.size() - 3) == ".sh"))
     // {
         
@@ -220,7 +245,7 @@ int shell(Command& comm)
         
         if (access(path.c_str(), X_OK) == -1)
         {
-            char error_message[30] = "This is file access error 1\n";
+            char error_message[30] = "An error has occurred\n";
             write(STDERR_FILENO, error_message, strlen(error_message));
             return 0; 
         }
@@ -252,7 +277,7 @@ int shell(Command& comm)
         //cout << path;
         if (access(path.c_str(), X_OK) == -1)
         {
-            char error_message[30] = "This is file access error 2\n";
+            char error_message[30] = "An error has occurred\n";
             write(STDERR_FILENO, error_message, strlen(error_message));
             return 0; 
         }
@@ -274,43 +299,26 @@ int shell(Command& comm)
     // args[2] = NULL;
     
     pid_t pid = Fork();
+    
     if(pid != 0)
     {
+        
+        
         Waitpid(pid, NULL, 0);
+        // if(file != "")
+        // {
+        //     Fclose(Fopen(file.c_str(), "w"));
+        // }
         //printf("%d has exited \n", pid);
+        
     }
     else
     {
-        if(find(comm.args.begin(), comm.args.end(), ">") != comm.args.end())
-        {
-            
-            int countOfOp = 0;
-            int idx = 0;
-            for(int i = 0; i<comm.args.size(); ++i)
-            {
-                if (comm.args[i] == ">")
-                {
-                    countOfOp++;
-                    idx = i;
-                }
-            }
-            //cout << comm.args[0] << endl;
-            if(countOfOp > 1 || idx == comm.args.size())
-            {
-                char error_message[30] = "This is redirection error\n";
-                write(STDERR_FILENO, error_message, strlen(error_message));
-                return 0; 
-            }
-            Fclose(Fopen(comm.args.back().c_str(), "w"));
-            int file = Open(comm.args.back().c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
-            comm.args.pop_back();
-            comm.args.pop_back();
-            Dup2(file, 1);
-        }
+        
         if ((execve(commPath.c_str(), args, NULL)) < 0)
         {
             
-            char error_message[30] = "This is execve failing error\n";
+            char error_message[30] = "An error has occurred\n";
             write(STDERR_FILENO, error_message, strlen(error_message)); 
         }
         
@@ -330,7 +338,7 @@ int batchFile(char* filename)
  
     if (NULL == fp) 
     {
-        char error_message[30] = "This is batch file error\n";
+        char error_message[30] = "An error has occurred\n";
         write(STDERR_FILENO, error_message, strlen(error_message)); 
         return (1);
     }
@@ -434,7 +442,7 @@ int main(int argc, char *argv[])
     {
         if(argc > 2)
         {
-            char error_message[30] = "This error is in MAIN\n";
+            char error_message[30] = "An error has occurred\n";
             write(STDERR_FILENO, error_message, strlen(error_message));
             return (1);
         }
