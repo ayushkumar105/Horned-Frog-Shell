@@ -61,7 +61,7 @@ struct command{
     vector<string> args;
 };
 typedef command Command;
-vector<string> currPaths;
+vector<string> currPaths = {"/bin"};
 vector<string> built_in = {"cd", "path", "exit"};
 
 //*********************************************************
@@ -69,11 +69,11 @@ vector<string> built_in = {"cd", "path", "exit"};
 // Function Prototypes
 //
 //*********************************************************
-int shell(const Command& comm);
+int shell(Command& comm);
 bool checkBuiltIn(const Command& command);
 string parseInput(const string& input);
 void executeCommand(const Command& command);
-int executeCommands(const vector<Command>& commands);
+int executeCommands(vector<Command>& commands);
 
 
 //*********************************************************
@@ -81,30 +81,38 @@ int executeCommands(const vector<Command>& commands);
 // Function Definitions
 //
 //*********************************************************
-int executeCommands(const vector<Command>& commands)
+int executeCommands(vector<Command>& commands)
 {
+    pid_t pid;
     for(int i =0; i< commands.size(); ++i)
     {
         if(!(checkBuiltIn(commands[i])))
         {
+            pid = Fork();
             
-            pid_t pid = Fork();
-            if(pid != 0)
-            {
-                Waitpid(pid, NULL, 0);
-                //printf("%d has exited \n", pid);
-            }
-            else
+            if(pid == 0)
             {
                 shell(commands[i]);
                 exit(0);
             }
+            // if(pid != 0)
+            // {
+            //     waitpid(pid, NULL, 0);
+            // }
         }
         else
         {
             executeCommand(commands[i]);
         }
     }
+    if(pid != 0)
+    {
+        
+        waitpid(pid, NULL, 0);
+        //printf("%d has exited \n", pid);
+    }
+    
+    
     return 0;
 }
 
@@ -115,23 +123,27 @@ void executeCommand(const Command& command)
     {
         if(!command.args.empty())
         {
-            char error_message[30] = "An error has occurred\n";
+            char error_message[30] = "This is exit error\n";
             write(STDERR_FILENO, error_message, strlen(error_message)); 
         }
-        exit(0);
+        else
+        {
+            exit(0);
+        }
+        
     }
     else if (command.comm == "cd")
     {
         if (command.args.size() > 1 || command.args.size() == 0)
         {
-            char error_message[30] = "An error has occurred\n";
+            char error_message[30] = "This is chdir argument error\n";
             write(STDERR_FILENO, error_message, strlen(error_message));
         }
         else
         {
             if(chdir(command.args[0].c_str()) != 0)
             {
-                char error_message[30] = "An error has occurred\n";
+                char error_message[30] = "This is chdir error\n";
                 write(STDERR_FILENO, error_message, strlen(error_message)); 
             }
         }
@@ -143,6 +155,12 @@ void executeCommand(const Command& command)
         {
             currPaths.push_back(i);
         }
+        // for(auto i : currPaths)
+        // {
+        //     cout << "For execute: " << i << " ";
+        // }
+        // cout << endl;
+        
     }
 }
 
@@ -155,19 +173,61 @@ bool checkBuiltIn(const Command& command)
     return false;
 }
 
-int shell(const Command& comm)
+int shell(Command& comm)
 {
-    string path = "/" + currPaths.front() + "/" + comm.comm;
+    if(currPaths.empty())
+    {
+        char error_message[30] = "This is empty path error\n";
+        write(STDERR_FILENO, error_message, strlen(error_message));
+        return 0; 
+    }
+    
+    // if(comm.comm.size() > 3 && (comm.comm.substr(comm.comm.size() - 3) == ".sh"))
+    // {
+        
+    //     if (access(path.c_str(), X_OK) == -1)
+    //     {
+    //         char error_message[30] = "An error has occurred\n";
+    //         write(STDERR_FILENO, error_message, strlen(error_message));
+    //         return 0; 
+    //     }
+    //     string shellArgument = "sh";
+    //     string shellPath = path;
+    //     commPath = "/bin/sh";
+    //     args[0] = const_cast<char*>(shellArgument.c_str());
+    //     args[1] = const_cast<char*>(shellPath.c_str());
+    //     args[2] = NULL;
+    //     //cout << "hiii";
+    // }
+    
+    string path = currPaths.front() + "/" + comm.comm;
     int i = 0;
     
-    while (i < currPaths.size() && access(path.c_str(), X_OK) == -1)
+    if (access(path.c_str(), X_OK) == -1)
     {
-        ++i;
-        path = "/" + currPaths[i] + "/" + comm.comm;
+        
+        while (i < currPaths.size())
+        {
+            //cout << currPaths[i] << endl;
+            path = currPaths[i] + "/" + comm.comm;
+            
+            if(access(path.c_str(), X_OK) == 0)
+            {
+                break;
+            }
+            ++i;
+        }
+        
+        if (access(path.c_str(), X_OK) == -1)
+        {
+            char error_message[30] = "This is file access error 1\n";
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            return 0; 
+        }
     }
-    string commPath = "/bin/sh";
     
     
+    string commPath = path;
     char *args[256];
     
     if (!comm.args.empty())
@@ -185,40 +245,94 @@ int shell(const Command& comm)
         args[0] = const_cast<char*>(commPath.c_str());
         args[1] = NULL;
     }
-    
-    if(false)
+    // string s = comm.comm.substr(comm.comm.size() - 3);
+    // //cout << (s == ".sh");
+    if(comm.comm.size() > 3 && (comm.comm.substr(comm.comm.size() - 3) == ".sh"))
     {
-        int file = Open("output.txt", O_WRONLY | O_APPEND | O_CREAT, 0644);
-        Dup2(file, 1);
+        //cout << path;
+        if (access(path.c_str(), X_OK) == -1)
+        {
+            char error_message[30] = "This is file access error 2\n";
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            return 0; 
+        }
+        string shellArgument = "sh";
+        string shellPath = path;
+        commPath = "/bin/sh";
+        args[0] = const_cast<char*>(shellArgument.c_str());
+        args[1] = const_cast<char*>(shellPath.c_str());
+        args[2] = NULL;
+        //cout << "hiii";
     }
-    cout << "HIII";
-    string s = "sh";
-    string s1 = "tests/p1.sh";
-    args[0] = const_cast<char*>(s.c_str());
-    args[1] = const_cast<char*>(s1.c_str());
-    args[2] = NULL;
+    //cout << currPaths.back();
     
-    if ((execve(commPath.c_str(), args, NULL)) < 0)
+    // cout << "HIII";
+    // string s = "sh";
+    // string s1 = "tests/p1.sh";
+    // args[0] = const_cast<char*>(s.c_str());
+    // args[1] = const_cast<char*>(s1.c_str());
+    // args[2] = NULL;
+    
+    pid_t pid = Fork();
+    if(pid != 0)
     {
+        Waitpid(pid, NULL, 0);
+        //printf("%d has exited \n", pid);
+    }
+    else
+    {
+        if(find(comm.args.begin(), comm.args.end(), ">") != comm.args.end())
+        {
+            
+            int countOfOp = 0;
+            int idx = 0;
+            for(int i = 0; i<comm.args.size(); ++i)
+            {
+                if (comm.args[i] == ">")
+                {
+                    countOfOp++;
+                    idx = i;
+                }
+            }
+            //cout << comm.args[0] << endl;
+            if(countOfOp > 1 || idx == comm.args.size())
+            {
+                char error_message[30] = "This is redirection error\n";
+                write(STDERR_FILENO, error_message, strlen(error_message));
+                return 0; 
+            }
+            Fclose(Fopen(comm.args.back().c_str(), "w"));
+            int file = Open(comm.args.back().c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+            comm.args.pop_back();
+            comm.args.pop_back();
+            Dup2(file, 1);
+        }
+        if ((execve(commPath.c_str(), args, NULL)) < 0)
+        {
+            
+            char error_message[30] = "This is execve failing error\n";
+            write(STDERR_FILENO, error_message, strlen(error_message)); 
+        }
         
-        char error_message[30] = "An error has occurred\n";
-        write(STDERR_FILENO, error_message, strlen(error_message)); 
+        exit(0);
     }
+    
     return 0;
 }
 
-void batchFile(char* filename)
+int batchFile(char* filename)
 {
     FILE* fp;
     
-    currPaths.push_back("bin");
+    
     // Opening file in reading mode
     fp = fopen(filename, "r");
  
     if (NULL == fp) 
     {
-        char error_message[30] = "An error has occurred\n";
+        char error_message[30] = "This is batch file error\n";
         write(STDERR_FILENO, error_message, strlen(error_message)); 
+        return (1);
     }
     
     /* local variables */
@@ -265,8 +379,16 @@ void batchFile(char* filename)
                 {
                     commands.push_back(comm);
                     comm = {};
-                    comm.comm = toks[ii + 1];
-                    ii += 2;
+                    if (toks[ii + 1] != NULL)
+                    {
+                        comm.comm = toks[ii + 1];
+                        ii += 2;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    
                 }
                 else
                 {
@@ -275,7 +397,11 @@ void batchFile(char* filename)
                 }
                 
             }
-            commands.push_back(comm);
+            if(comm.comm != "")
+            {
+                commands.push_back(comm);
+            }
+            
             // for(auto j : commands)
             // {
             //     cout << "Command: " << j.comm << " ";
@@ -292,7 +418,7 @@ void batchFile(char* filename)
              break;
         }
     }
-    
+    return 0;
 }
 
 
@@ -306,7 +432,13 @@ int main(int argc, char *argv[])
     
     if(argc > 1)
     {
-        batchFile(argv[1]);
+        if(argc > 2)
+        {
+            char error_message[30] = "This error is in MAIN\n";
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            return (1);
+        }
+        return batchFile(argv[1]);
     }
     else
     {
@@ -330,7 +462,7 @@ int main(int argc, char *argv[])
         cout << "hfsh2> ";
         
         while(Fgets(linestr, 256, stdin)){
-            currPaths.push_back("bin");
+            //currPaths.push_back("bin");
             // make sure line has a '\n' at the end of it
             if(!strstr(linestr, "\n"))
                 strcat(linestr, "\n");
@@ -340,10 +472,7 @@ int main(int argc, char *argv[])
             yy_switch_to_buffer(buffer);
             toks = gettoks();
             yy_delete_buffer(buffer);
-            if(strcmp(toks[0], "exit") != 0)
-            {
-                cout << "hfsh2> ";
-            }
+            
             if(toks[0] != NULL){
                 
                 string str = toks[0];
@@ -356,8 +485,16 @@ int main(int argc, char *argv[])
                     {
                         commands.push_back(comm);
                         comm = {};
-                        comm.comm = toks[ii + 1];
-                        ii += 2;
+                        if (toks[ii + 1] != NULL)
+                        {
+                            comm.comm = toks[ii + 1];
+                            ii += 2;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                        
                     }
                     else
                     {
@@ -366,7 +503,10 @@ int main(int argc, char *argv[])
                     }
                     
                 }
-                commands.push_back(comm);
+                if(comm.comm != "")
+                {
+                    commands.push_back(comm);
+                }
                 // for(auto j : commands)
                 // {
                 //     cout << "Command: " << j.comm << " ";
@@ -379,6 +519,10 @@ int main(int argc, char *argv[])
                 executeCommands(commands);
                 commands.clear();
                 comm = {};
+                if(strcmp(toks[0], "exit") != 0)
+                {
+                    cout << "hfsh2> ";
+                }
                 if(!strcmp(toks[0], STR_EXIT))
                 break;
             }
