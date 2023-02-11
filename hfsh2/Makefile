@@ -5,7 +5,7 @@
 ###########################################################
 .SUFFIXES: .h .c .cpp .l .o
 
-CC = g++
+CC = gcc
 CXX = g++
 CFLAGS = -g 
 LEX = flex
@@ -18,7 +18,7 @@ OBJS = hfsh2.o csapp.o lex.yy.o
 
 
 $(EXE): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
+	$(CXX) $(CFLAGS) $^ -o $@ $(LIBS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
