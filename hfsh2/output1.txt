@@ -1,24 +1,4 @@
-total 1008
--rw-rw-r-- 1 ayushkumar ayushkumar      0 Feb 10 14:48 !
-drwxrwxr-x 4 ayushkumar ayushkumar   4096 Feb 10 17:03 .
-drwxrwxr-x 5 ayushkumar ayushkumar   4096 Feb 10 14:48 ..
--rw-rw-r-- 1 ayushkumar ayushkumar      0 Feb 10 14:48 >
--rw-rw-r-- 1 ayushkumar ayushkumar  23126 Feb 10 14:48 csapp.c
--rw-rw-r-- 1 ayushkumar ayushkumar   6585 Feb 10 14:48 csapp.h
--rw-rw-r-- 1 ayushkumar ayushkumar  64160 Feb 10 14:53 csapp.o
--rwxrwxr-x 1 ayushkumar ayushkumar 325720 Feb 10 17:03 hfsh2
--rw-rw-r-- 1 ayushkumar ayushkumar  14478 Feb 10 17:03 hfsh2.cpp
--rw-rw-r-- 1 ayushkumar ayushkumar 440128 Feb 10 17:03 hfsh2.o
--rw-rw-r-- 1 ayushkumar ayushkumar  45099 Feb 10 15:28 lex.yy.c
--rw-rw-r-- 1 ayushkumar ayushkumar  45264 Feb 10 16:02 lex.yy.o
--rw-rw-r-- 1 ayushkumar ayushkumar    557 Feb 10 16:05 Makefile
--rw-rw-r-- 1 ayushkumar ayushkumar      2 Feb 10 14:48 output.10
--rw-rw-r-- 1 ayushkumar ayushkumar      0 Feb 10 17:04 output1.txt
--rw-rw-r-- 1 ayushkumar ayushkumar      6 Feb 10 14:48 output2.txt
--rw-rw-r-- 1 ayushkumar ayushkumar      6 Feb 10 14:48 output3.txt
--rw-rw-r-- 1 ayushkumar ayushkumar     63 Feb 10 14:48 output.txt
--rw-rw-r-- 1 ayushkumar ayushkumar      7 Feb 10 14:48 README.md
--rw-rw-r-- 1 ayushkumar ayushkumar    564 Feb 10 15:28 scan.l
--rwxrwxr-x 1 ayushkumar ayushkumar    126 Feb 10 14:48 test-hfsh2.sh
-drwxrwxr-x 3 ayushkumar ayushkumar   4096 Feb 10 14:48 tests
-drwxrwxr-x 2 ayushkumar ayushkumar   4096 Feb 10 14:48 tests-out
+test1
+test2
+test3
+test4
