@@ -35,5 +35,9 @@ lex.yy.c: scan.l
 clean:
 	$(RM) $(RMFLAGS) *.o *~ hfsh2 lex.yy.c tests-out
 
+test:
+	./test-hfsh2.sh
 
+test-all:
+	./test-hfsh2.sh -c
 
