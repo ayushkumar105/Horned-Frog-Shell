@@ -33,7 +33,7 @@ lex.yy.c: scan.l
 	$(LEX) $<
 
 clean:
-	$(RM) $(RMFLAGS) *.o *~ hfsh2 lex.yy.c tests-out
+	$(RM) $(RMFLAGS) *.o *~ hfsh2 lex.yy.c tests-out *.txt
 
 test:
 	./test-hfsh2.sh

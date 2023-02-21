@@ -1,4 +1,0 @@
-path /bin tests
-p5.sh > output1.txt & p4.sh > output1.txt
-cat output1.txt
-exit

@@ -520,11 +520,11 @@ int shell(Command& comm)
         
         if(redirect != -1)
         {
-            //Restore the usual STDOUT/STDERR if it was redirected. 
+            //Restore the usual STDOUT/STDERR if they were redirected. 
             Dup2(savedStdOut, STDOUT_FILENO);
             Dup2(savedStdErr, STDERR_FILENO);
         }
-        //Close the saved std out/err as they will be resorted if it was redirected
+        //Close the saved std out/err as they will be restored if they were redirected
         Close(savedStdOut);
         Close(savedStdErr);
     }
