@@ -29,7 +29,6 @@ using namespace std;
 //
 //************************************************************************************************************************************************************
 // Buffer state. This is used to parse string in memory...
-// Leave this alone.
 extern "C"{
     extern char **gettoks();
     typedef struct yy_buffer_state * YY_BUFFER_STATE;
